@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小说搜索下载器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #6a11cb, #2575fc);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .user-info {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .auth-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .login-btn {
+            background: transparent;
+            border: 2px solid #6a11cb;
+            color: #6a11cb;
+        }
+        
+        .register-btn {
+            background: linear-gradient(90deg, #6a11cb, #2575fc);
+            color: white;
+        }
+        
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .user-welcome {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #6a11cb;
+            font-weight: bold;
+        }
+        
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+        
+        .description {
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        
+        .search-box {
+            display: flex;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 50px;
+            overflow: hidden;
+        }
+        
+        #search-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            font-size: 16px;
+            outline: none;
+            background: #f8f9fa;
+        }
+        
+        #search-btn {
+            background: linear-gradient(90deg, #6a11cb, #2575fc);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        #search-btn:hover {
+            background: linear-gradient(90deg, #5a0db9, #1c68e8);
+            transform: translateY(-2px);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .result-count {
+            margin-bottom: 20px;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        
+        .result-item {
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+        
+        .result-item:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+        }
+        
+        .result-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        
+        .result-author {
+            color: #7f8c8d;
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+        
+        .result-description {
+            margin-bottom: 15px;
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .download-btn {
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .download-btn:hover {
+            background: linear-gradient(90deg, #219653, #27ae60);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(39, 174, 96, 0.3);
+        }
+        
+        .download-btn::before {
+            content: '↓';
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
+            background: #ffeaea;
+            border-radius: 10px;
+            display: none;
+            margin-bottom: 20px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 14px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .instructions {
+            background: #e8f4fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .instructions h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .instructions p {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .modal h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #6a11cb;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(90deg, #6a11cb, #2575fc);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .switch-auth {
+            text-align: center;
+            margin-top: 20px;
+            color: #7f8c8d;
+        }
+        
+        .switch-auth a {
+            color: #6a11cb;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .search-box {
+                flex-direction: column;
+                border-radius: 10px;
+            }
+            
+            #search-input {
+                border-radius: 10px 10px 0 0;
+                margin-bottom: 0;
+            }
+            
+            #search-btn {
+                border-radius: 0 0 10px 10px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .user-info {
+                position: static;
+                justify-content: center;
+                margin-bottom: 15px;
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="user-info">
+                <div id="auth-buttons" class="auth-buttons">
+                    <button class="auth-btn login-btn" onclick="showLogin()">登录</button>
+                    <button class="auth-btn register-btn" onclick="showRegister()">注册</button>
+                </div>
+                <div id="user-welcome" class="user-welcome" style="display: none;">
+                    <span id="welcome-text">欢迎，用户</span>
+                    <button class="logout-btn" onclick="logout()">退出</button>
+                </div>
+            </div>
+            <h1>📚 小说搜索下载器</h1>
+            <p class="description">输入小说名称，搜索并下载您喜欢的小说</p>
+        </header>
+        
+        <div class="instructions">
+            <h3>使用说明</h3>
+            <p>1. 请先登录或注册账号</p>
+            <p>2. 在下方输入框输入小说名称</p>
+            <p>3. 点击搜索按钮查找相关小说</p>
+            <p>4. 从搜索结果中选择并下载您喜欢的小说</p>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="请输入小说名称，例如：斗破苍穹...">
+            <button id="search-btn">搜索</button>
+        </div>
+        
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>正在搜索中，请稍候...</p>
+        </div>
+        
+        <div class="error" id="error-message"></div>
+        
+        <div class="results" id="results-container">
+            <div class="result-count" id="result-count"></div>
+            <div id="results-list"></div>
+        </div>
+        
+        <footer>
+            <p>API来源：小尘API API.XCVTS.CN | 用户认证系统已启用</p>
+        </footer>
+    </div>
+
+    <!-- 登录模态框 -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="hideModals()">×</button>
+            <h2>用户登录</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">邮箱</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">密码</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="submit-btn">登录</button>
+            </form>
+            <div class="switch-auth">
+                还没有账号？ <a onclick="showRegister()">立即注册</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="hideModals()">×</button>
+            <h2>用户注册</h2>
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-username">用户名</label>
+                    <input type="text" id="register-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">邮箱</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">密码</label>
+                    <input type="password" id="register-password" required>
+                </div>
+                <button type="submit" class="submit-btn">注册</button>
+            </form>
+            <div class="switch-auth">
+                已有账号？ <a onclick="showLogin()">立即登录</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null;
+        let token = localStorage.getItem('token');
+
+        // DOM元素
+        const authButtons = document.getElementById('auth-buttons');
+        const userWelcome = document.getElementById('user-welcome');
+        const welcomeText = document.getElementById('welcome-text');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const loading = document.querySelector('.loading');
+        const errorMessage = document.getElementById('error-message');
+        const resultsContainer = document.getElementById('results-container');
+        const resultCount = document.getElementById('result-count');
+        const resultsList = document.getElementById('results-list');
+        const loginModal = document.getElementById('login-modal');
+        const registerModal = document.getElementById('register-modal');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查登录状态
+            if (token) {
+                checkAuth();
+            }
+
+            // 搜索功能
+            searchBtn.addEventListener('click', performSearch);
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            // 表单提交
+            loginForm.addEventListener('submit', handleLogin);
+            registerForm.addEventListener('submit', handleRegister);
+        });
+
+        // 认证相关函数
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/user', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    currentUser = user;
+                    updateUI();
+                } else {
+                    localStorage.removeItem('token');
+                    token = null;
+                }
+            } catch (error) {
+                console.error('认证检查失败:', error);
+                localStorage.removeItem('token');
+                token = null;
+            }
+        }
+
+        function updateUI() {
+            if (currentUser) {
+                authButtons.style.display = 'none';
+                userWelcome.style.display = 'flex';
+                welcomeText.textContent = `欢迎，${currentUser.username}`;
+                searchInput.placeholder = '您已登录，请输入小说名称...';
+            } else {
+                authButtons.style.display = 'flex';
+                userWelcome.style.display = 'none';
+                searchInput.placeholder = '请先登录后搜索小说...';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                    currentUser = data.user;
+                    hideModals();
+                    updateUI();
+                    showSuccess('登录成功！');
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('登录失败，请检查网络连接');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                    currentUser = data.user;
+                    hideModals();
+                    updateUI();
+                    showSuccess('注册成功！');
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('注册失败，请检查网络连接');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            token = null;
+            currentUser = null;
+            updateUI();
+            showSuccess('已退出登录');
+        }
+
+        // 模态框控制
+        function showLogin() {
+            hideModals();
+            loginModal.style.display = 'block';
+        }
+
+        function showRegister() {
+            hideModals();
+            registerModal.style.display = 'block';
+        }
+
+        function hideModals() {
+            loginModal.style.display = 'none';
+            registerModal.style.display = 'none';
+            loginForm.reset();
+            registerForm.reset();
+        }
+
+        // 搜索功能
+        async function performSearch() {
+            if (!currentUser) {
+                showError('请先登录后再搜索小说');
+                showLogin();
+                return;
+            }
+
+            const query = searchInput.value.trim();
+            
+            if (!query) {
+                showError('请输入要搜索的小说名称');
+                return;
+            }
+
+            loading.style.display = 'block';
+            resultsContainer.style.display = 'none';
+            errorMessage.style.display = 'none';
+
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        showError('登录已过期，请重新登录');
+                        logout();
+                        return;
+                    }
+                    throw new Error('搜索请求失败');
+                }
+
+                const data = await response.json();
+                loading.style.display = 'none';
+                
+                if (data.status === 'success' && data.count > 0) {
+                    displayResults(data);
+                } else {
+                    showError('未找到相关小说，请尝试其他关键词');
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                showError('搜索失败: ' + error.message);
+            }
+        }
+
+        function displayResults(data) {
+            resultCount.textContent = `找到 ${data.count} 本相关小说`;
+            resultsList.innerHTML = '';
+            
+            data.results.forEach(item => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                
+                resultItem.innerHTML = `
+                    <div class="result-title">${item.title}</div>
+                    <div class="result-author">作者: ${item.author}</div>
+                    <div class="result-description">${item.description || '暂无简介'}</div>
+                    <button class="download-btn" data-url="${item.url}" data-title="${item.title}">下载小说</button>
+                `;
+                
+                resultsList.appendChild(resultItem);
+            });
+
+            document.querySelectorAll('.download-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (!currentUser) {
+                        showError('请先登录后再下载');
+                        showLogin();
+                        return;
+                    }
+                    const url = this.getAttribute('data-url');
+                    const title = this.getAttribute('data-title');
+                    downloadNovel(url, title);
+                });
+            });
+            
+            resultsContainer.style.display = 'block';
+        }
+
+        function downloadNovel(url, title) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${title}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showSuccess(`正在下载《${title}》，请稍候...`);
+        }
+
+        // 消息提示
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            resultsContainer.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            alert(message);
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            if (event.target === loginModal || event.target === registerModal) {
+                hideModals();
+            }
+        }
+    </script>
+</body>
+</html>
